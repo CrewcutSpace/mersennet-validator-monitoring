@@ -1,0 +1,33 @@
+# Optional Loki ruler rules (log-based). Needs the node's journal shipped to Loki,
+# e.g. with Grafana Alloy or Promtail. Replace the selector with yours:
+#   systemd node (official installer): {unit="mersennet.service"}
+#   Docker / Kubernetes:               {container="mersennet"}
+groups:
+  - name: mersennet-logs
+    rules:
+      - alert: MersennetWatchdogRestart
+        expr: |
+          sum(count_over_time({unit="mersennet.service"} |= "head has not advanced while the network moved on" [30m])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mersennet node restarted itself after stalling"
+          description: "The liveness watchdog found the head stuck while the network moved on. Repeated restarts mean the node cannot follow the chain."
+
+      - alert: MersennetSlashingEvidence
+        expr: |
+          sum(count_over_time({unit="mersennet.service"} |= "slashing evidence detected" [10m])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slashing evidence seen on the Mersennet network"
+          description: "A validator signed two blocks at one height. Check that it is not yours (never run the same node key twice)."
+
+      - alert: MersennetLeaderSlotGivenUp
+        expr: |
+          sum(count_over_time({unit="mersennet.service"} |= "too close to the round deadline" [15m])) > 3
+        labels:
+          severity: warning
+        annotations:
+          summary: "The node often gives up leader rounds"
+          description: "More than 3 'too close to the round deadline' lines in 15 minutes: the previous block arrives late (UDP gossip lost, NAT/MTU, CPU). A few per hour can be failover rounds and are normal."

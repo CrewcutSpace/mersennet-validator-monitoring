@@ -1,0 +1,16 @@
+# Add to the scrape_configs of prometheus.yml (or load with scrape_config_files).
+# Replace <node host> with the address of the server that runs the node and the exporter.
+scrape_configs:
+  # The node's own metrics. The node serves them on its RPC port (8545) under /metrics;
+  # by default the RPC listens on 127.0.0.1 only, so run Prometheus on the same host
+  # or open 8545 to the Prometheus server only (never to the internet).
+  - job_name: mersennet-node
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['<node host>:8545']
+
+  # Validator status from mersennet_validatorSet (this repo's exporter).
+  - job_name: mersennet-validator
+    scrape_interval: 60s
+    static_configs:
+      - targets: ['<node host>:7979']

@@ -1,0 +1,41 @@
+name: exporter image
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths: ['exporter/**', '.github/workflows/image.yml']
+  pull_request:
+    paths: ['exporter/**']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Syntax check
+        run: python3 -m py_compile exporter/mersennet_exporter.py
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/mersennet-validator-exporter
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha,prefix=
+      - uses: docker/build-push-action@v6
+        with:
+          context: exporter
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

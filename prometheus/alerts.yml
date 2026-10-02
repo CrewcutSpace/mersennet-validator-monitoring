@@ -1,0 +1,143 @@
+# Prometheus alert rules for a Mersennet validator.
+# Load with rule_files in prometheus.yml. Jobs: mersennet-node, mersennet-validator (see scrape.yml).
+groups:
+  - name: mersennet-node
+    rules:
+      - alert: MersennetNodeDown
+        expr: up{job="mersennet-node"} == 0 or absent(up{job="mersennet-node"})
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Mersennet node is down"
+          description: "Prometheus cannot scrape the node. A validator that is down misses its leader slots, is benched, then jailed."
+
+      - alert: MersennetHeightStalled
+        expr: increase(mersennet_height{job="mersennet-node"}[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Mersennet node height stalled"
+          description: "No new block imported in 5 minutes."
+
+      - alert: MersennetNotFinalizing
+        expr: increase(mersennet_bft_finalized_total{job="mersennet-node"}[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Mersennet node sees no finalized blocks"
+          description: "No block finalized by 2/3 stake in 5 minutes, either on the node or on the whole network."
+
+      - alert: MersennetForkDetected
+        expr: increase(mersennet_import_fork_detected_total{job="mersennet-node"}[10m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "Mersennet node detected a fork"
+          description: "The node imported a block whose parent does not match its head. Usually an old release after a consensus upgrade: update, then reset the state if it repeats."
+
+      - alert: MersennetStateRootMismatchOnStart
+        expr: increase(mersennet_resume_state_root_mismatch_total{job="mersennet-node"}[10m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mersennet node started on a state that does not match the head block"
+          description: "Right after a state reset this can be expected for a while (the team said so for 8c497bb). Otherwise: run the current release and reset the state once."
+
+      - alert: MersennetMempoolHigh
+        expr: mersennet_mempool_size{job="mersennet-node"} > 8000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mersennet mempool approaching capacity"
+
+  - name: mersennet-validator
+    rules:
+      - alert: MersennetExporterDown
+        expr: up{job="mersennet-validator"} == 0 or absent(up{job="mersennet-validator"})
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mersennet validator exporter is down"
+          description: "The validator status alerts are blind while it is down."
+
+      - alert: MersennetPublicRpcUnreachable
+        expr: mersennet_validatorset_up{source="public"} == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "The exporter cannot reach the public RPC"
+          description: "Validator status and the lag comparison come from it."
+
+      - alert: MersennetBehindNetwork
+        # The two heights are read at slightly different moments; the time between
+        # the reads times the block rate is added back, or the read offset alone
+        # shows up as a lag of a few blocks.
+        expr: |
+          max(mersennet_validatorset_height{source="public"})
+            - max(mersennet_validatorset_height{source="local"})
+            - (max(timestamp(mersennet_validatorset_height{source="public"}))
+               - max(timestamp(mersennet_validatorset_height{source="local"})))
+              * max(rate(mersennet_validatorset_height{source="public"}[5m]))
+            > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mersennet node is {{ $value | printf \"%.0f\" }} blocks behind the public RPC"
+
+      - alert: MersennetValidatorNotRegistered
+        expr: absent(mersennet_validator_registered{source="public"}) and on() mersennet_validatorset_up{source="public"} == 1
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Mersennet validator is not in the validator set"
+          description: "The identity is missing from mersennet_validatorSet on the public RPC: not registered yet, unregistered, or a wrong MERSENNET_IDENTITY."
+
+      - alert: MersennetValidatorJailed
+        expr: mersennet_validator_registered{source="public", status="jailed"} == 1
+        labels:
+          severity: critical
+        annotations:
+          summary: "Mersennet validator is jailed"
+          description: "Missed more than 20% of its leader slots (or was benched) last epoch; sits out at least one epoch, longer for repeated jails. No stake is lost."
+
+      - alert: MersennetValidatorBenched
+        expr: mersennet_validator_benched{source="public"} == 1
+        labels:
+          severity: critical
+        annotations:
+          summary: "Mersennet validator is benched"
+          description: "3 missed leader slots this epoch: out of the leader rotation until the boundary, jailed at the next one."
+
+      - alert: MersennetValidatorMissedSlots
+        expr: increase(mersennet_validator_missed_slots{source="public"}[15m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mersennet validator missed a leader slot"
+          description: "{{ $value | printf \"%.0f\" }} leader slot(s) missed in the last 15 minutes."
+
+      - alert: MersennetValidatorNotActive
+        expr: mersennet_validator_registered{source="public", status!~"active|jailed"} == 1
+        for: 70m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mersennet validator is {{ $labels.status }}, not active"
+          description: "Still not in the active set after an epoch. standby means ranked below the active-set limit: add self-stake or delegations."
+
+      - alert: MersennetNewRelease
+        expr: max(mersennet_node_outdated{source="local"}) == 1
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "New Mersennet release: {{ with query \"mersennet_release_latest_info{source='local'}\" }}{{ . | first | label \"rev\" }}{{ end }}"
+          description: "The node runs {{ with query \"mersennet_node_version_info{source='local'}\" }}{{ . | first | label \"rev\" }}{{ end }}. Check the switch height on https://explorer.mersennet.com/upgrades and update before it, near the end of an epoch."

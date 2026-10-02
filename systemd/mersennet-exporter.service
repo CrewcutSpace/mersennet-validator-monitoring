@@ -1,0 +1,22 @@
+[Unit]
+Description=Mersennet validator exporter (Prometheus)
+After=network-online.target mersennet.service
+Wants=network-online.target
+
+[Service]
+# Set your node identity (mersennet_nodeIdentity -> identity, lowercase).
+Environment=MERSENNET_IDENTITY=0x0000000000000000000000000000000000000000
+Environment=MERSENNET_LOCAL_RPC=http://127.0.0.1:8545
+Environment=MERSENNET_PUBLIC_RPC=https://rpc.mersennet.com
+Environment=LISTEN_ADDR=0.0.0.0:7979
+ExecStart=/usr/bin/python3 /usr/local/bin/mersennet_exporter.py
+DynamicUser=yes
+Restart=always
+RestartSec=10
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

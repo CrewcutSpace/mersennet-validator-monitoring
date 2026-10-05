@@ -118,13 +118,18 @@ groups:
 
       - alert: MersennetValidatorMissedSlots
         # A single missed slot now and then is normal: the leader hands the height to
-        # the failover leader when the previous block comes late. 2 in one epoch is one away from bench.
-        expr: max(mersennet_validator_missed_slots{source="public"}) >= 2
+        # the failover leader when the previous block comes late. Bench needs 3 misses
+        # that are at least 10% of the slots proposed, so fire only when one more miss
+        # would really bench: 2+ missed and (missed + 1) >= 10% of proposed.
+        expr: |
+          max(mersennet_validator_missed_slots{source="public"}) >= 2
+          and on() (max(mersennet_validator_missed_slots{source="public"}) + 1)
+            >= 0.1 * max(mersennet_validator_proposed_slots{source="public"})
         labels:
           severity: warning
         annotations:
           summary: "Mersennet validator missed {{ $value | printf \"%.0f\" }} leader slots this epoch"
-          description: "One more miss in this epoch benches the validator (3 missed, at least 10% of the slots proposed) and jails it for the next one. Check the node: lag, peers, restarts."
+          description: "One more miss in this epoch benches the validator (bench = 3 missed that are at least 10% of the slots proposed) and jails it for the next one. Check the node: lag, peers, restarts."
 
       - alert: MersennetValidatorNotActive
         expr: mersennet_validator_registered{source="public", status!~"active|jailed"} == 1

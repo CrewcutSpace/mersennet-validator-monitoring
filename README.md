@@ -107,7 +107,7 @@ Validator status is read from `source="public"`, so it stays correct while your 
 
 ## How the alerts read
 
-- **Missed slots / benched / jailed:** a single missed slot now and then is normal — the leader hands the height to the failover leader when the previous block arrives late — so the alert fires at 2 in one epoch. 3 missed leader slots in an epoch (at least 10% of the slots proposed) bench the validator; benched or >20% missed means jailed for the next epoch, longer when it repeats. No stake is lost. Restart a validator only late in an epoch.
+- **Missed slots / benched / jailed:** a single missed slot now and then is normal — the leader hands the height to the failover leader when the previous block arrives late — so the alert fires only when one more miss would bench the validator (2+ missed and the next one would reach 10% of the slots proposed). 3 missed leader slots in an epoch (at least 10% of the slots proposed) bench the validator; benched or >20% missed means jailed for the next epoch, longer when it repeats. No stake is lost. Restart a validator only late in an epoch.
 - **New release:** a release usually comes with a switch height — update before it, or the node forks off. The height is announced on [explorer.mersennet.com/upgrades](https://explorer.mersennet.com/upgrades) and in the Mersennet Telegram.
 - **Behind the network:** the two heights are read a moment apart; the alert corrects for that, so a few blocks of difference is normal.
 

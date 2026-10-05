@@ -9,7 +9,7 @@ and whether it runs the current release. This kit adds exactly that, and alerts 
 | | |
 |---|---|
 | **Exporter** | Reads `mersennet_validatorSet` from your node and from the public RPC, plus `mersennet_nodeIdentity` and the official release list. Python standard library only — runs as a Docker container or a systemd service. |
-| **Alerts** | Node down, height stalled, not finalizing, fork / state mismatch, behind the network, missed slot, benched, jailed, not active, new release available. |
+| **Alerts** | Node down, height stalled, not finalizing, fork / state mismatch, behind the network, 2+ missed slots in an epoch, benched, jailed, not active, new release available. |
 | **Dashboard** | Status, active set, build, benched, rank, epoch / blocks to the next one, proposed / missed slots, stake, node health and trends. |
 
 ## Requirements
@@ -107,7 +107,7 @@ Validator status is read from `source="public"`, so it stays correct while your 
 
 ## How the alerts read
 
-- **Missed slot / benched / jailed:** 3 missed leader slots in an epoch (at least 10% of the slots proposed) bench the validator; benched or >20% missed means jailed for the next epoch, longer when it repeats. No stake is lost. Restart a validator only late in an epoch.
+- **Missed slots / benched / jailed:** a single missed slot now and then is normal — the leader hands the height to the failover leader when the previous block arrives late — so the alert fires at 2 in one epoch. 3 missed leader slots in an epoch (at least 10% of the slots proposed) bench the validator; benched or >20% missed means jailed for the next epoch, longer when it repeats. No stake is lost. Restart a validator only late in an epoch.
 - **New release:** a release usually comes with a switch height — update before it, or the node forks off. The height is announced on [explorer.mersennet.com/upgrades](https://explorer.mersennet.com/upgrades) and in the Mersennet Telegram.
 - **Behind the network:** the two heights are read a moment apart; the alert corrects for that, so a few blocks of difference is normal.
 

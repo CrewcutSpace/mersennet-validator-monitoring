@@ -222,7 +222,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "Release our node runs (mersennet_nodeIdentity). Green = the current official release (downloads/SHA256SUMS), orange = a newer one is out: check the switch height on explorer.mersennet.com/upgrades (alert MersennetNewRelease after 30 min).",
+      "description": "Release our node runs (mersennet_nodeIdentity). Green = the current official release (downloads/SHA256SUMS), orange = a newer one is out: check the switch height on explorer.mersennet.com/upgrades (alert MersennetNewRelease after 10 min).",
       "fieldConfig": {
         "defaults": {
           "noValue": "unknown",

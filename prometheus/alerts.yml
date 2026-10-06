@@ -142,7 +142,7 @@ groups:
 
       - alert: MersennetNewRelease
         expr: max(mersennet_node_outdated{source="local"}) == 1
-        for: 30m
+        for: 10m
         labels:
           severity: warning
         annotations:

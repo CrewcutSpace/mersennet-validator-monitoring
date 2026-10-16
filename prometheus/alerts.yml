@@ -77,13 +77,15 @@ groups:
       - alert: MersennetBehindNetwork
         # The two heights are read at slightly different moments; the time between
         # the reads times the block rate is added back, or the read offset alone
-        # shows up as a lag of a few blocks.
+        # shows up as a lag of a few blocks. deriv, not rate: height is a gauge,
+        # and rate takes a stale lower height from the public RPC for a counter
+        # reset, which inflates the block rate and fires the alert falsely.
         expr: |
           max(mersennet_validatorset_height{source="public"})
             - max(mersennet_validatorset_height{source="local"})
             - (max(timestamp(mersennet_validatorset_height{source="public"}))
                - max(timestamp(mersennet_validatorset_height{source="local"})))
-              * max(rate(mersennet_validatorset_height{source="public"}[5m]))
+              * max(deriv(mersennet_validatorset_height{source="public"}[5m]))
             > 30
         for: 5m
         labels:

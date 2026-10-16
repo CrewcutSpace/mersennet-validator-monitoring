@@ -997,7 +997,7 @@
       },
       "targets": [
         {
-          "expr": "(round(max(mersennet_validatorset_height{source=\"public\"}) - max(mersennet_validatorset_height{source=\"local\"}) + (max(timestamp(mersennet_validatorset_height{source=\"local\"})) - max(timestamp(mersennet_validatorset_height{source=\"public\"}))) * max(rate(mersennet_validatorset_height{source=\"public\"}[5m]))) > 1) or on() (0 * max(mersennet_validatorset_height{source=\"local\"}))",
+          "expr": "(round(max(mersennet_validatorset_height{source=\"public\"}) - max(mersennet_validatorset_height{source=\"local\"}) + (max(timestamp(mersennet_validatorset_height{source=\"local\"})) - max(timestamp(mersennet_validatorset_height{source=\"public\"}))) * max(deriv(mersennet_validatorset_height{source=\"public\"}[5m]))) > 1) or on() (0 * max(mersennet_validatorset_height{source=\"local\"}))",
           "instant": true,
           "refId": "A",
           "datasource": {

@@ -12,10 +12,6 @@ Standard library only. Configuration through environment variables:
   ASENTUM_LOCAL_RPC   your node's RPC     default http://127.0.0.1:8545
   ASENTUM_PUBLIC_RPC  reference RPC       default https://testnet.asentum.com
   LISTEN_ADDR         host:port to serve  default 0.0.0.0:7980
-  ASENTUM_RELEASE     release your node runs, e.g. 0.9.5 (optional: enables
-                      asentum_node_outdated; the node API does not report it)
-  ASENTUM_RELEASE_URL current official release
-                      default https://testnet.asentum.com/install/validator-release.json
 
 The validator set and the committee are read from the public RPC, so they stay
 visible while your node is down; participation is read from your node (it scans
@@ -25,7 +21,6 @@ import json
 import os
 import re
 import sys
-import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -34,27 +29,10 @@ ADDRESS = os.environ.get("ASENTUM_ADDRESS", "").strip().lower()
 LOCAL_RPC = os.environ.get("ASENTUM_LOCAL_RPC", "http://127.0.0.1:8545").rstrip("/")
 PUBLIC_RPC = os.environ.get("ASENTUM_PUBLIC_RPC", "https://testnet.asentum.com").rstrip("/")
 LISTEN_ADDR = os.environ.get("LISTEN_ADDR", "0.0.0.0:7980")
-RELEASE = os.environ.get("ASENTUM_RELEASE", "").strip()
-RELEASE_URL = os.environ.get("ASENTUM_RELEASE_URL", "https://testnet.asentum.com/install/validator-release.json")
 
 WEI = 10**18
 USER_AGENT = "asentum-validator-monitoring/1.0"
 BECH32 = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
-_latest = {"release": None, "published": "", "at": 0.0}
-
-
-def latest_release():
-    """Current official release (the file the installer reads); re-read every 10 min, keep the last on errors."""
-    if time.time() - _latest["at"] > 600:
-        try:
-            req = urllib.request.Request(RELEASE_URL, headers={"User-Agent": USER_AGENT})
-            with urllib.request.urlopen(req, timeout=15) as r:
-                j = json.load(r)
-            _latest.update(release=str(j["release"]), published=j.get("publishedAt", ""), at=time.time())
-        except Exception as e:  # noqa: BLE001
-            print(f"{RELEASE_URL} failed: {e}", file=sys.stderr, flush=True)
-            _latest["at"] = time.time() - 540  # retry in a minute
-    return _latest["release"]
 
 
 def bech32_to_hex(addr):
@@ -227,16 +205,6 @@ def collect(addr_hex, addr_bech):
                   "Signed share of the participation lookback")
             out.g("asentum_validator_last_signed_block", num(mine.get("lastSignedBlock")),
                   "Height of the last signed block (0 = none)")
-
-    latest = latest_release()
-    if latest:
-        out.g("asentum_release_latest_info", 1, "Current official release (validator-release.json)",
-              {"release": latest, "published_at": _latest["published"]})
-    if RELEASE:
-        out.g("asentum_node_release_info", 1, "Release the node runs (ASENTUM_RELEASE)", {"release": RELEASE})
-        if latest:
-            out.g("asentum_node_outdated", int(RELEASE != latest),
-                  "1 when the node does not run the current official release")
 
     try:
         bal = num(rpc(PUBLIC_RPC, "eth_getBalance", [addr_bech, "latest"]))

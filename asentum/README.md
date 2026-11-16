@@ -28,8 +28,6 @@ curl -s localhost:7980/metrics | grep -E 'validator_(registered|in_committee|sta
 | `ASENTUM_LOCAL_RPC` | `http://127.0.0.1:8545` | your node |
 | `ASENTUM_PUBLIC_RPC` | `https://testnet.asentum.com` | reference for the network tip, the validator set and the committee |
 | `LISTEN_ADDR` | `0.0.0.0:7980` | open `7980` to your Prometheus only |
-| `ASENTUM_RELEASE` | — | release your node runs, e.g. `0.9.5`; the node API does not report it. Enables `asentum_node_outdated` |
-| `ASENTUM_RELEASE_URL` | `https://testnet.asentum.com/install/validator-release.json` | current official release, the file the installer reads |
 
 The validator set and the committee come from the public RPC, so they stay visible while your node is
 down. Participation comes from your node: it scans the last 1000 blocks. Scrape every 60 s.
@@ -56,5 +54,3 @@ down. Participation comes from your node: it scans the last 1000 blocks. Scrape 
 | `asentum_validator_consecutive_misses` | consecutive missed votes |
 | `asentum_validator_last_voted_height`, `asentum_validator_last_signed_block` | last vote and last signed block |
 | `asentum_validator_signed_blocks`, `asentum_validator_participation_ratio` | signed blocks and share in the lookback |
-| `asentum_release_latest_info{release,published_at}` | current official release, re-read every 10 min |
-| `asentum_node_release_info{release}`, `asentum_node_outdated` | release of your node (`ASENTUM_RELEASE`) and 1 when it is not the current one |

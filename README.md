@@ -114,3 +114,7 @@ Validator status is read from `source="public"`, so it stays correct while your 
 ## License
 
 MIT — by [CrewcutSpace](https://crewcut.space). Issues and pull requests welcome.
+
+## Other chains
+
+- [`asentum/`](asentum/): exporter for an Asentum validator.
